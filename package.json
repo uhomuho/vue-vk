@@ -7,7 +7,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "vue-cli-service ftpdeploy --genHist --diffFileOnly --ftpCfgPath /ftpdeploy/ --ftpHistPath /ftpdeploy/",
-    "production": "npm run build && npm run deploy"
+    "production": "npm run build && npm run deploy",
+    "heroku": "git add -A && git commit -m \"Update\" && git push heroku master && heroku logs --tail --dyno=web"
   },
   "dependencies": {
     "@vk-io/authorization": "0.0.0-alpha.1",
