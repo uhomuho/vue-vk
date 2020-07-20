@@ -1,10 +1,11 @@
 import axios from 'axios'
 
-axios.defaults.headers.common['Content-Type'] = 'multipart/form-data';
-axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
-
 export default () => {
 	return axios.create({
-		baseURL: 'http://localhost:8081'
+		baseURL: 'https://serene-savannah-08565.herokuapp.com',
+		headers: {
+			'Content-Type': 'multipart/form-data',
+			'Access-Control-Allow-Origin': '*'
+		}
 	})
 }

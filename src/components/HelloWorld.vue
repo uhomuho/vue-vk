@@ -55,7 +55,7 @@
 							input.button(
 							type="submit",
 							value="Искать")
-
+				| {{groups}}
 				.columns.is-flex.is-multiline(
 					v-if="groups")
 					.column.is-4-desktop.is-6-tablet.is-12-mobile(
