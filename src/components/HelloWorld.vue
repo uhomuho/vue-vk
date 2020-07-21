@@ -55,48 +55,16 @@
 							input.button(
 							type="submit",
 							value="Искать")
-				| {{groups}}
-				.columns.is-flex.is-multiline(
-					v-if="groups")
-					.column.is-4-desktop.is-6-tablet.is-12-mobile(
-						v-for="(group, key) in groups.data.groups",
-						:key="group")
-						.column-container
-							.card
-								.card-image
-									figure.image
-										img(
-											:src="group.attrs.groupPhoto",
-											:alt="group.attrs.groupName")
-								.card-content
-									.content
-										a(
-											:href="'http://vk.com/public'+key",
-											target="_blank")
-											| {{group.attrs.groupName}}
-									table.table
-										thead
-											tr
-												td Просмотры
-												td Участники
-												td Активные участники
-										tbody
-											tr
-												td
-													| {{group.average_views}}
-													br
-													|	{{group.views_k}}
-												td
-													| {{group.total_members}} 
-												td
-													|	{{group.total_active_members}}
-													br
-													| {{group.users_k}}
-
+				
+					.box.has-background-dark.has-text-white
+						pre
+							| {{ groups }}
 </template>
 
 <script>
-import vk from '@/api/vk_methods'
+import axios from 'axios'
+axios.defaults.headers.common['Content-Type'] = 'multipart/form-data'
+axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*'
 
 export default {
 	name: 'HelloWorld',
@@ -108,25 +76,70 @@ export default {
 				keyword: 'Цветы',
 				usersCount: 1000,
 				daysCount: 14,
-				groupsCount: 30
+				groupsCount: 30,
+			},
+			vk: {
+				accessToken: '1dffe21dab528604255477a812b7853f4367fdd910a88e9a42504327abd3199287205b8e4356dfc743baf',
+				v: 5.21
 			}
 		}
 	},
 	methods: {
-		async getGroupsInfo(){
+		createRequestString(obj) {
+			var result,
+					count = 1
 
-			var result = await vk.getGroups(this.formData)
-			this.groups = result
+			for (var [key, value] of Object.entries(obj)) {
+				if (count == 1) {
+					result = `${key}=${value}`
+				} else {
+					result = result+`&${key}=${value}`
+				}
+				count++
+			}
+			return result
+		},
+		vkapi(method, params) {
+			axios
+				.get(`https://api.vk.com/method/${method}?${
+			this.createRequestString(params)}`)
+				.then(response => console.log(response))
+		},
+		async getGroupsInfo(){
+			var params = {
+				q:        this.formData.keyword,
+				type:     'group',
+				count:    this.formData.groupsCount,
+				city_id:  1,
+				access_token:    this.vk.accessToken,
+				v:        this.vk.v
+			}
+
+			this.vkapi('groups.search', params)
+			// var vk = new VK({
+			// })
+			// var response = await vk.api.groups.search({
+				
+			// })
 		}
 	},
 	mounted(){
+		this.getGroupsInfo()
+			.then(data=>console.log(data))
+			.catch(err=>console.log(err))
 	}
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .columns {
 	margin-top: 2rem;
+}
+.box {
+	text-align: left;
+}
+.box pre {
+	background: transparent;
+	color: #fff;
 }
 </style>
