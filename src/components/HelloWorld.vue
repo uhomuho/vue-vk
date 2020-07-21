@@ -62,9 +62,7 @@
 </template>
 
 <script>
-import axios from 'axios'
-axios.defaults.headers.common['Content-Type'] = 'multipart/form-data'
-axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*'
+import fetch from 'node-fetch'
 
 export default {
 	name: 'HelloWorld',
@@ -100,10 +98,14 @@ export default {
 			return result
 		},
 		vkapi(method, params) {
-			axios
-				.get(`https://api.vk.com/method/${method}?${
-			this.createRequestString(params)}`)
-				.then(response => console.log(response))
+			// fetch()
+			// 	.then(response=>console.log(response))
+			// axios
+			// 	.get(`https://api.vk.com/method/${method}?${
+			// this.createRequestString(params)}`)
+			// 	.then(response => console.log(response))
+			return fetch(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`)
+				.then((response) => response.json())
 		},
 		async getGroupsInfo(){
 			var params = {
