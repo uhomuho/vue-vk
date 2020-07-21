@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import axios from 'axios-jsonp-pro'
+// import axios from 'axios-jsonp-pro'
 
 export default {
 	name: 'HelloWorld',
@@ -98,12 +98,18 @@ export default {
 			return result
 		},
 		vkapi(method, params) {
-			// fetch(`https://api.vk.com/method/${method}?${
-			// this.createRequestString(params)}`)
-			// 	.then(response=>console.log(response))
-			axios
-				.get(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`)
-				.then(response => console.log(response))
+			fetch(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`, {
+				method: 'GET',
+				mode: 'cors',
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Content-Type': 'jsonp'
+				}
+			})
+				.then(response=>console.log(response))
+			// axios
+			// 	.get(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`)
+			// 	.then(response => console.log(response))
 		},
 		async getGroupsInfo(){
 			var params = {
@@ -116,16 +122,13 @@ export default {
 			}
 
 			this.vkapi('groups.search', params)
-			// var vk = new VK({
-			// })
-			// var response = await vk.api.groups.search({
-				
-			// })
 		}
+	},
+	created(){
+		//https://vk.com/js/api/openapi.js?168
 	},
 	mounted(){
 		this.getGroupsInfo()
-			.then(data=>console.log(data))
 			.catch(err=>console.log(err))
 	}
 }
