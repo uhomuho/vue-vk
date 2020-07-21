@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import fetch from 'node-fetch'
+import axios from 'axios-jsonp-pro'
 
 export default {
 	name: 'HelloWorld',
@@ -98,14 +98,12 @@ export default {
 			return result
 		},
 		vkapi(method, params) {
-			// fetch()
-			// 	.then(response=>console.log(response))
-			// axios
-			// 	.get(`https://api.vk.com/method/${method}?${
+			// fetch(`https://api.vk.com/method/${method}?${
 			// this.createRequestString(params)}`)
-			// 	.then(response => console.log(response))
-			return fetch(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`)
-				.then((response) => response.json())
+			// 	.then(response=>console.log(response))
+			axios
+				.get(`https://api.vk.com/method/${method}?${this.createRequestString(params)}`)
+				.then(response => console.log(response))
 		},
 		async getGroupsInfo(){
 			var params = {
