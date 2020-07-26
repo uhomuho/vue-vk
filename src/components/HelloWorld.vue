@@ -57,9 +57,9 @@
 							value="Искать")
 				
 					.box.has-background-dark.has-text-white
-						pre
+						.loader.is-loading(v-if="isLoading")
+						pre(v-else)
 							| {{ groupsData }}
-
 
 </template>
 
@@ -72,9 +72,9 @@ export default {
 		return {
 			formData: {
 				keyword: 'Цветы',
-				usersCount: 1,
+				usersCount: 1000,
 				daysCount: 14,
-				groupsCount: 2,
+				groupsCount: 50,
 				postsCount: 30
 			},
 			vk: {
@@ -86,12 +86,13 @@ export default {
 				activeUsersCount: null,
 				groupsData: null
 			},
+			isLoading: false,
 			groupsData: {}
 		}
 	},
 	methods: {
-		delay(index) {
-			setTimeout(function(){}, 1000*index)
+		async delay(index) {
+			setTimeout(await function(){}, 1000*index)
 		},
 		createRequestString(obj) {
 			// Создание строки с параметрами для доступа к апишке
@@ -110,6 +111,7 @@ export default {
 			return result
 		},
 		async getGroupsInfo(){
+			this.isLoading = true
 			// Составление параметров для получения массива групп
 			var params = {
 				q:        			this.formData.keyword,
@@ -132,6 +134,7 @@ export default {
 					// Запускаем функцию перебора юзеров каждой группы
 					this.processingData.groupsData = await this.processingUsers()
 					this.groupsData = await this.processingPosts()
+					console.log(this.groupsData)
 				})
 		},
 		async processingUsers(){
@@ -161,7 +164,7 @@ export default {
 							'origin': 'x-requested-with'
 						}
 					})
-					.then(r=>{
+					.then(async r=>{
 						if (!r.data.error) {
 							this.processingData.activeUsersCount = 0
 							for (var i=0; i < r.data.response.items.length; i++) {
@@ -186,6 +189,7 @@ export default {
 						} else {
 							delete groups[group.id]
 						}
+						await this.delay(index)
 						return groups
 					})
 					.catch(err=>console.error(err))
@@ -200,7 +204,7 @@ export default {
 					index = 0,
 					views
 
-			var map = this.processingData.allGroups.map(async group => {
+			var map = await this.processingData.allGroups.map(async group => {
 				index++
 				views = 0
 				var params = {
@@ -232,13 +236,22 @@ export default {
 				})
 			return Promise.all(map)
 				.then(r=>r)
+				.then(r=>{
+					this.isLoading = false
+					// return r
+					for (var i = 0; i < r.length; i++) {
+						if (r[i] !== undefined) {
+							return r[i]
+						}
+					}
+				})
 				.then(r=>r)
 				.catch(err=>console.error(err))
 		}
 	},
 	mounted(){
 		this.getGroupsInfo()
-			.catch(err=>console.log(err))
+			.catch(err=>this.groupsData = err)
 	}
 }
 </script>
@@ -253,5 +266,10 @@ export default {
 .box pre {
 	background: transparent;
 	color: #fff;
+}
+.box .loader {
+	margin: 2rem auto;
+	height: 4rem;
+	width: 4rem;
 }
 </style>
