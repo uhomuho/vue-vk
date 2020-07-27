@@ -16,6 +16,8 @@
 											type="text",
 											placeholder="Ключевое слово",
 											v-model="formData.keyword")
+										p.help.is-danger(v-if="formData.keyword == ''")
+											|Введите ключевое слово!
 
 						.column.is-6-desktop.is-6-tablet.is-12-mobile
 							.column-container
@@ -27,17 +29,8 @@
 											type="number",
 											placeholder="Юзеры",
 											v-model="formData.usersCount")
-
-						.column.is-6-desktop.is-6-tablet.is-12-mobile
-							.column-container
-								.field
-									.label
-										| Сколько дней назад были онлайн
-									.control
-										input.input(
-											type="number",
-											placeholder="Дни",
-											v-model="formData.daysCount")
+										p.help.is-danger(v-if="formData.usersCount == '' || formData.usersCount == 0")
+											|Введите сколько подписчиков просматривать!
 
 						.column.is-6-desktop.is-6-tablet.is-12-mobile
 							.column-container
@@ -49,22 +42,72 @@
 											type="number",
 											placeholder="Паблосики",
 											v-model="formData.groupsCount")
+										p.help.is-danger(v-if="formData.groupsCount == '' || formData.groupsCount == 0")
+											|Введите количество просматриваемых групп!
+
+						.column.is-6-desktop.is-6-tablet.is-12-mobile
+							.column-container
+								.field
+									.label
+										| Сколько постов просматриваем
+									.control
+										input.input(
+											type="number",
+											placeholder="Паблосики",
+											v-model="formData.postsCount")
+										p.help.is-danger(v-if="formData.postsCount == '' || formData.postsCount == 0")
+											|Введите сколько постов сканировать!
 
 					.field
 						.control
 							input.button(
 							type="submit",
 							value="Искать")
+
+					.field(v-if="groupsData")
+						.control
+							.button(@click="createSheet()")
+								|Создать табличку
 				
 					.box.has-background-dark.has-text-white
 						.loader.is-loading(v-if="isLoading")
-						pre(v-else)
-							| {{ groupsData }}
+						.columns.is-flex.is-multiline(v-else)
+							.column.is-6-desktop.is-12-tablet.is-12-mobile(
+								v-for="(group, index) in groupsData",
+								v-if="!group.has_error")
+								.box.has-background-white
+									.media
+										.media-left
+											img(:src="group.photo", :alt="group.name")
+										.media-content
+											.content
+												h6
+													a(
+														:href="'https://vk.com/public'+index",
+														target="_blank")
+														|{{group.name}}
+											table.table
+												tr
+													td Подписчики:
+													td {{group.total_members}}
+												tr
+													td Активные подписчики:
+													td {{group.total_active_members}}
+												tr
+													td Коэффициент активных подписчиков:
+													td {{group.active_members_k}}
+												tr(v-if="group.average_views")
+													td Среднее кол-во просмотров:
+													td {{group.average_views}}
+												tr(v-if="group.views_k")
+													td Среднее кол-во просмотров:
+													td {{group.views_k}}
 
 </template>
 
 <script>
 import axios from 'axios'
+import api from '@/api/vk_methods'
 
 export default {
 	name: 'HelloWorld',
@@ -75,7 +118,14 @@ export default {
 				usersCount: 1000,
 				daysCount: 14,
 				groupsCount: 50,
-				postsCount: 30
+				postsCount: 30,
+				errors: {
+					keyword: false,
+					usersCount: false,
+					daysCount: false,
+					groupsCount: false,
+					postsCount: false
+				}
 			},
 			vk: {
 				accessToken: '1dffe21dab528604255477a812b7853f4367fdd910a88e9a42504327abd3199287205b8e4356dfc743baf',
@@ -87,12 +137,14 @@ export default {
 				groupsData: null
 			},
 			isLoading: false,
-			groupsData: {}
+			groupsData: null
 		}
 	},
 	methods: {
-		async delay(index) {
-			setTimeout(await function(){}, 1000*index)
+		delay(index, data) {
+			return new Promise(resolve => {
+				setTimeout(resolve.bind(null, data), 300*index);
+			});
 		},
 		createRequestString(obj) {
 			// Создание строки с параметрами для доступа к апишке
@@ -111,13 +163,18 @@ export default {
 			return result
 		},
 		async getGroupsInfo(){
+			var formData = this.formData
+			if (formData.keyword == '' || formData.usersCount == 0 || formData.usersCount == '' || formData.groupsCount == 0 || formData.groupsCount == '' || formData.postsCount == 0 || formData.postsCount == '') {
+				return false
+			}
 			this.isLoading = true
 			// Составление параметров для получения массива групп
 			var params = {
 				q:        			this.formData.keyword,
 				type:     			'group',
 				count:    			this.formData.groupsCount,
-				city_id:  			1
+				city_id:  			1,
+				sort: 					2
 			}
 
 			// Получение массива групп
@@ -143,13 +200,13 @@ export default {
 					timestamp = Math.floor(Date.now()/1000),
 					unixDaysCount = this.formData.daysCount * 86400,
 					index = 0
-					// currentTime,
-					// lastSeen
+
 			var map = this.processingData.allGroups.map(async (group)=>{
 				groups[group.id] = {}
 				groups[group.id]['photo'] = group.photo_200
 				groups[group.id]['name'] = group.name
 				index++
+
 				// Составление параметров для получения массива юзеров
 				var params = {
 					group_id: group.id,
@@ -157,42 +214,43 @@ export default {
 					fields: 	'last_seen, is_closed, deactivated'
 				} 
 				// Получение массива юзеров
-				await this.delay(index)
-				return axios
-					.get(`https://uhomuhoproxy.herokuapp.com/https://api.vk.com/method/groups.getMembers?${this.createRequestString(params)}`, {
-						headers: {
-							'origin': 'x-requested-with'
-						}
-					})
-					.then(async r=>{
-						if (!r.data.error) {
-							this.processingData.activeUsersCount = 0
-							for (var i=0; i < r.data.response.items.length; i++) {
-								var user = r.data.response.items[i]
+				return await this.delay(index)
+					.then(()=>{
+						return axios
+							.get(`https://uhomuhoproxy.herokuapp.com/https://api.vk.com/method/groups.getMembers?${this.createRequestString(params)}`, {
+								headers: {
+									'origin': 'x-requested-with'
+								}
+							})
+							.then(async r=>{
+								if (!r.data.error) {
+									this.processingData.activeUsersCount = 0
+									for (var i=0; i < r.data.response.items.length; i++) {
+										var user = r.data.response.items[i]
 
-								if (user.last_seen) {
-									var different = timestamp - user.last_seen.time
-
-									if (user.deactivated !== 'banned' && user.deactivated !== 'deleted') {
-										if (different < unixDaysCount) {
-											this.processingData.activeUsersCount = i+1
-											groups[group.id]['has_error'] = false
+										if (user.last_seen) {
+											var different = timestamp - user.last_seen.time
+											
+											if (user.deactivated !== 'banned' && user.deactivated !== 'deleted') {
+												if (different < unixDaysCount) {
+													this.processingData.activeUsersCount = i+1
+													groups[group.id]['has_error'] = false
+												}
+											}
+										} else {
+											groups[group.id]['has_error'] = true
 										}
 									}
+									groups[group.id]['active_members_k'] = this.processingData.activeUsersCount/this.formData.usersCount
+									groups[group.id]['total_active_members'] = Math.floor(groups[group.id]['active_members_k'] * r.data.response.count)
+									groups[group.id]['total_members'] = r.data.response.count
 								} else {
-									groups[group.id]['has_error'] = true
+									delete groups[group.id]
 								}
-							}
-							groups[group.id]['active_members_k'] = this.processingData.activeUsersCount/this.formData.usersCount
-							groups[group.id]['total_active_members'] = Math.floor(groups[group.id]['active_members_k'] * r.data.response.count)
-							groups[group.id]['total_members'] = r.data.response.count
-						} else {
-							delete groups[group.id]
-						}
-						await this.delay(index)
-						return groups
+								return groups
+							})
+							.catch((err)=>console.log(err))
 					})
-					.catch(err=>console.error(err))
 			})
 			return Promise.all(map)
 				.then(r=>r)
@@ -212,26 +270,33 @@ export default {
 					count: 		this.formData.postsCount,
 				} 
 				// Получение массива юзеров
-				await this.delay(index)
-				return axios
-					.get(`https://uhomuhoproxy.herokuapp.com/https://api.vk.com/method/wall.get?${this.createRequestString(params)}`, {
-						headers: {
-							'origin': 'x-requested-with'
-						}
+
+				return await this.delay(index)
+					.then(()=>{
+						return axios
+							.get(`https://uhomuhoproxy.herokuapp.com/https://api.vk.com/method/wall.get?${this.createRequestString(params)}`, {
+								headers: {
+									'origin': 'x-requested-with'
+								}
+							})
+							.then(r=>{
+								views = 0
+								if (!r.data.error) {
+									for (var i = 0; i < r.data.response.items.length; i++) {
+										if (r.data.response.items) {
+											var post = r.data.response.items[i]
+											views = views + post.views.count
+										}
+									}
+									groups[group.id]['average_views'] = Math.floor(views/this.formData.postsCount)
+									groups[group.id]['views_k'] = groups[group.id]['average_views']/groups[group.id]['total_active_members']
+								} else {
+									groups[group.id]['has_error'] = true
+								}
+									return groups
+							})
+							.catch(err=>console.log(err))
 					})
-					.then(r=>{
-						views = 0
-						for (var i = 0; i < r.data.response.items.length; i++) {
-							if (r.data.response.items) {
-								var post = r.data.response.items[i]
-								views = views + post.views.count
-							}
-						}
-						groups[group.id]['average_views'] = Math.floor(views/this.formData.postsCount)
-						groups[group.id]['views_k'] = groups[group.id]['average_views']/groups[group.id]['total_active_members']
-						return groups
-					})
-					.catch(err=>console.log(err))
 
 				})
 			return Promise.all(map)
@@ -247,11 +312,14 @@ export default {
 				})
 				.then(r=>r)
 				.catch(err=>console.error(err))
+		},
+		async createSheet(){
+			var request = await api.createSheet()
+			console.log(request)
 		}
 	},
 	mounted(){
-		this.getGroupsInfo()
-			.catch(err=>this.groupsData = err)
+		this.createSheet()
 	}
 }
 </script>
@@ -271,5 +339,11 @@ export default {
 	margin: 2rem auto;
 	height: 4rem;
 	width: 4rem;
+}
+.media .media-left img {
+	max-width: 3rem;
+}
+.media .media-content .table tr td:last-of-type {
+	text-align: right;
 }
 </style>
