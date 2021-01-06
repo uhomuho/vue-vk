@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@vk-io/authorization": "0.0.0-alpha.1",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "axios-jsonp-pro": "^1.1.8",
     "buefy": "^0.8.20",
     "connect-history-api-fallback": "^1.6.0",
